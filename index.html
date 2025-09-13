@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Grupos de Investigación — Prototipo</title>
+
+  <!-- Bootstrap CSS + Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
+
+  <style>
+    /* Estilos personalizados para mejorar la apariencia */
+    body {
+      background: linear-gradient(180deg, #f7fbff 0%, #f2f7fb 40%, #ffffff 100%);
+      min-height: 100vh;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    .brand {
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+    .hero {
+      background: linear-gradient(90deg, rgba(14,165,233,0.12), rgba(99,102,241,0.08));
+      border-radius: 12px;
+      padding: 18px;
+      box-shadow: 0 6px 18px rgba(15,23,42,0.04);
+    }
+    .group-card {
+      transition: transform .12s ease, box-shadow .12s ease;
+      border: 0;
+      border-radius: 12px;
+      box-shadow: 0 6px 18px rgba(15,23,42,0.04);
+    }
+    .group-card:hover { transform: translateY(-4px); box-shadow: 0 10px 30px rgba(15,23,42,0.07); }
+    .small-muted { font-size: .85rem; color: #6b7280; }
+    .form-card { border-radius: 12px; box-shadow: 0 6px 18px rgba(15,23,42,0.03); }
+    .badge-count { background: linear-gradient(90deg,#7c3aed,#06b6d4); color: #fff; }
+    /* Toast positioning */
+    #toastContainer {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      z-index: 1080;
+    }
+  </style>
+</head>
+<body class="container py-4">
+
+  <!-- NAV -->
+  <nav class="navbar navbar-expand bg-white mb-4 rounded p-3 shadow-sm">
+    <div class="container-fluid px-0">
+      <a class="navbar-brand brand d-flex align-items-center gap-2" href="#">
+        <i class="bi bi-bezier2 fs-4" aria-hidden="true"></i>
+        <span>Facultad — <small class="text-muted">Investigación</small></span>
+      </a>
+
+      <div class="ms-auto d-flex align-items-center gap-2">
+      
+        <button id="btnCargar" class="btn btn-primary d-flex align-items-center">
+          <i class="bi bi-cloud-download me-2"></i> <span>Cargar Grupos</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO / INTRO -->
+  <section class="hero mb-4">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h1 class="h4 mb-1">Gestión de Grupos de Investigación</h1>
+        <p class="small-muted mb-0">Prototipo interactivo para registrar docentes, vincular estudiantes y programar actividades en semilleros.</p>
+      </div>
+      <div>
+        <span class="badge badge-count px-3 py-2 rounded-pill">Prototipo • JSONPlaceholder</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAIN GRID -->
+  <div class="row g-4">
+
+    <!-- LEFT: listado de grupos -->
+    <div class="col-12 col-lg-4">
+      <div class="card group-card p-3 mb-3">
+        <h5 class="mb-2">Grupos de la Facultad</h5>
+        <p class="small-muted mb-3">Selecciona un grupo para ver su información y gestionar semilleros.</p>
+
+        <!-- Lista original (conservada) -->
+        <ul id="listaGrupos" class="list-group list-group-flush"></ul>
+
+        <div class="mt-3">
+          <small class="text-muted">Tip: pulsa <strong>Ver</strong> en cada tarjeta para abrir detalles.</small>
+        </div>
+      </div>
+
+      <!-- Resumen de actividad -->
+      <div class="card form-card p-3">
+        <h6 class="mb-2">Resumen rápido</h6>
+        <ul class="list-unstyled small-muted mb-0">
+          <li><i class="bi bi-person-plus me-2"></i>Registra docentes y estudiantes con POST.</li>
+          <li><i class="bi bi-calendar-event me-2"></i>Agrega actividades con fecha y hora.</li>
+          <li><i class="bi bi-cloud-arrow-up me-2"></i>Simulamos persistencia con JSONPlaceholder.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- RIGHT: detalle y formularios -->
+    <div class="col-12 col-lg-8">
+
+      <!-- CARD: detalle del grupo seleccionado -->
+      <div id="detalleGrupo" class="card d-none mb-4 group-card">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+              <h3 id="nombreGrupo" class="card-title mb-0"></h3>
+              <p id="objetivosGrupo" class="small-muted mb-1"></p>
+              <p class="mb-0"><strong>Director:</strong> <span id="directorGrupo"></span></p>
+            </div>
+            <div class="text-end">
+              <span id="badgeActividades" class="badge bg-info text-dark">Actividades: 0</span>
+              <div class="small-muted mt-1">Estado: Activo</div>
+            </div>
+          </div>
+
+          <hr />
+
+          <div class="row">
+            <div class="col-12 col-md-6">
+              <h6>Docentes vinculados</h6>
+              <ul id="listaDocentes" class="list-group mb-3"></ul>
+            </div>
+            <div class="col-12 col-md-6">
+              <h6>Semilleros</h6>
+              <div id="semillerosArea" class="mb-3"></div>
+            </div>
+          </div>
+
+          <h6 class="mt-2">Actividades</h6>
+          <ul id="listaActividades" class="list-group"></ul>
+        </div>
+      </div>
+
+      <!-- Placeholder si no hay selección -->
+      <div id="placeholderDetalle" class="border rounded p-3 mb-4 text-center">
+        <p class="mb-0"><i class="bi bi-info-circle me-2"></i>Selecciona un grupo para ver detalles (usa "Cargar Grupos").</p>
+      </div>
+
+      <!-- FORMS: en dos columnas dentro de una card grande -->
+      <div class="card form-card p-3">
+        <div class="row">
+          <!-- Formulario Docente -->
+          <div class="col-12 col-lg-6 mb-3">
+            <h5 class="mb-2"><i class="bi bi-person-badge me-2"></i>Registrar Docente</h5>
+            <form id="formDocente" class="mb-0">
+              <input id="docenteNombre" type="text" class="form-control mb-2" name="nombre" placeholder="Nombre docente" required>
+              <input id="docenteFormacion" type="text" class="form-control mb-2" name="formacion" placeholder="Formación académica (PhD, MSc, Ing.)" required>
+              <input id="docenteHorario" type="text" class="form-control mb-2" name="horario" placeholder="Horario de atención (ej. Lun 9:00-11:00)" required>
+
+              <select id="docenteGrupo" class="form-select mb-3" name="grupo" required>
+                <option value="COMBA I+D">COMBA I+D</option>
+                <option value="GIEIAM">GIEIAM</option>
+              </select>
+
+              <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-success w-100"><i class="bi bi-check2-circle me-2"></i>Registrar Docente</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Formulario Estudiante y Actividad -->
+          <div class="col-12 col-lg-6">
+            <h5 class="mb-2"><i class="bi bi-people-fill me-2"></i>Vincular Estudiante</h5>
+            <form id="formEstudiante" class="mb-3">
+              <input id="estudianteNombre" type="text" class="form-control mb-2" name="nombre" placeholder="Nombre estudiante" required>
+              <input id="estudianteCodigo" type="text" class="form-control mb-2" name="codigo" placeholder="Código estudiante" required>
+              <input id="estudianteCarrera" type="text" class="form-control mb-2" name="carrera" placeholder="Carrera" required>
+
+              <select id="estudianteSemillero" class="form-select mb-2" name="semillero" required>
+                <option value="COMBA I+D|Semillero Comba">COMBA I+D — Semillero Comba</option>
+                <option value="COMBA I+D|Semillero Informa">COMBA I+D — Semillero Informa</option>
+                <option value="GIEIAM|A">GIEIAM — Semillero A</option>
+                <option value="GIEIAM|B">GIEIAM — Semillero B</option>
+              </select>
+              <button type="submit" class="btn btn-info w-100"><i class="bi bi-link-45deg me-2"></i>Vincular Estudiante</button>
+            </form>
+
+            <hr />
+
+            <h5 class="mb-2"><i class="bi bi-calendar2-plus-fill me-2"></i>Agregar Actividad</h5>
+            <form id="formActividad">
+              <input id="actividadTitulo" type="text" class="form-control mb-2" name="titulo" placeholder="Título (ej. Taller X)" required>
+              <select id="actividadTipo" class="form-select mb-2" name="tipo" required>
+                <option value="Taller">Taller</option>
+                <option value="Conferencia">Conferencia</option>
+                <option value="Evento de integración">Evento de integración</option>
+              </select>
+              <div class="d-flex gap-2 mb-2">
+                <input id="actividadFecha" type="date" class="form-control" name="fecha" required>
+                <input id="actividadHora" type="time" class="form-control" name="hora" required>
+              </div>
+              <input id="actividadLimite" type="number" class="form-control mb-2" name="limite" placeholder="Límite de asistentes" required>
+              <textarea id="actividadResumen" class="form-control mb-2" name="resumen" placeholder="Resumen (máx 200 caracteres)" rows="2" required></textarea>
+
+              <select id="actividadSemillero" class="form-select mb-2" name="semillero" required>
+                <option value="COMBA I+D|Semillero Comba">COMBA I+D — Semillero Comba</option>
+                <option value="COMBA I+D|Semillero Informa">COMBA I+D — Semillero Informa</option>
+                <option value="GIEIAM|A">GIEIAM — Semillero A</option>
+                <option value="GIEIAM|B">GIEIAM — Semillero B</option>
+              </select>
+
+              <button type="submit" class="btn btn-warning w-100"><i class="bi bi-plus-square me-2"></i>Agregar Actividad</button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Documentación compacta -->
+      <div class="mt-3 small-muted">
+        <strong>Notas:</strong> GET = carga de directores simulada via JSONPlaceholder. POST = simulación de persistencia (se actualiza UI local).
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast container para notificaciones visuales -->
+  <div id="toastContainer" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Bootstrap bundle (JS) para toasts y componentes -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- ========== SCRIPT: conserva toda la lógica funcional previa ========== -->
+  <script>
+    /***********************************************
+     * PROTOTIPO VERSIÓN VISUAL
+     * - Conserva exactamente los IDs y la funcionalidad.
+     * - Mejora la UI: tarjetas, toasts y estilo visual.
+     ***********************************************/
+
+    // ELEMENTOS (IDs preservados)
+    const lista = document.getElementById("listaGrupos");
+    const btnCargar = document.getElementById("btnCargar");
+    const formDocente = document.getElementById("formDocente");
+    const detalleGrupo = document.getElementById("detalleGrupo");
+    const placeholderDetalle = document.getElementById("placeholderDetalle");
+    const nombreGrupoEl = document.getElementById("nombreGrupo");
+    const objetivosGrupoEl = document.getElementById("objetivosGrupo");
+    const directorGrupoEl = document.getElementById("directorGrupo");
+    const listaDocentesEl = document.getElementById("listaDocentes");
+    const listaActividadesEl = document.getElementById("listaActividades");
+    const semillerosArea = document.getElementById("semillerosArea");
+    const badgeActividades = document.getElementById("badgeActividades");
+
+    const formEstudiante = document.getElementById("formEstudiante");
+    const formActividad = document.getElementById("formActividad");
+
+    // Estructura local (conservada, semilleros en ambos grupos)
+    const grupos = {
+      "COMBA I+D": {
+        nombre: "COMBA I+D",
+        objetivos: "Investigar soluciones innovadoras en computación, hardware y automatización con énfasis en aplicación industrial y académica.",
+        director: "—",
+        docentes: [],
+        semilleros: {
+          "Semillero Comba": { estudiantes: [], actividades: [] },
+          "Semillero Informa": { estudiantes: [], actividades: [] }
+        },
+        actividades: []
+      },
+      "GIEIAM": {
+        nombre: "GIEIAM",
+        objetivos: "Investigar temas en ingeniería, energía, medio ambiente e innovación aplicada al territorio.",
+        director: "—",
+        docentes: [],
+        semilleros: {
+          "A": { estudiantes: [], actividades: [] },
+          "B": { estudiantes: [], actividades: [] }
+        },
+        actividades: []
+      }
+    };
+
+    let grupoSeleccionado = null;
+
+    /* ------------------ Helpers UI / Toasts ------------------ */
+    // Muestra una notificación tipo toast (exito/info)
+    function showToast(message, variant = "success") {
+      const container = document.getElementById("toastContainer");
+      const toastId = "t" + Date.now();
+      const toastHtml = `
+        <div id="${toastId}" class="toast align-items-center text-bg-${variant} border-0 mb-2" role="alert" aria-live="assertive" aria-atomic="true">
+          <div class="d-flex">
+            <div class="toast-body">${message}</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+          </div>
+        </div>
+      `;
+      container.insertAdjacentHTML("beforeend", toastHtml);
+      const el = document.getElementById(toastId);
+      const bsToast = new bootstrap.Toast(el, { delay: 3500 });
+      bsToast.show();
+      // remover después de un tiempo
+      el.addEventListener("hidden.bs.toast", () => el.remove());
+    }
+
+    function escapeId(s) { return s.replace(/\s+/g, "_").replace(/[^\w\-]/g, ""); }
+
+    /* ------------------ Renderizado de listas y detalle ------------------ */
+    function renderGroupsList() {
+      lista.innerHTML = "";
+      for (const key of Object.keys(grupos)) {
+        const g = grupos[key];
+
+        // Creamos item rich con tarjeta interna
+        const li = document.createElement("li");
+        li.className = "list-group-item bg-transparent border-0 p-0 mb-3";
+
+        li.innerHTML = `
+          <div class="card group-card p-3">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div class="d-flex align-items-center gap-2">
+                  <i class="bi bi-folder2-open fs-4 text-primary"></i>
+                  <div>
+                    <strong>${g.nombre}</strong>
+                    <div class="small-muted">${g.objetivos.slice(0, 70)}${g.objetivos.length > 70 ? "..." : ""}</div>
+                  </div>
+                </div>
+              </div>
+              <div class="text-end">
+                <small class="small-muted d-block mb-2">Semilleros: ${Object.keys(g.semilleros).length}</small>
+                <button class="btn btn-sm btn-outline-primary" data-grupo="${key}"><i class="bi bi-eye me-1"></i>Ver</button>
+              </div>
+            </div>
+          </div>
+        `;
+        lista.appendChild(li);
+      }
+
+      // Delegación del evento Ver
+      lista.querySelectorAll("button[data-grupo]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const g = btn.getAttribute("data-grupo");
+          showGroupDetails(g);
+        });
+      });
+    }
+
+    function showGroupDetails(nombre) {
+      grupoSeleccionado = nombre;
+      const g = grupos[nombre];
+
+      detalleGrupo.classList.remove("d-none");
+      placeholderDetalle.classList.add("d-none");
+
+      nombreGrupoEl.textContent = g.nombre;
+      objetivosGrupoEl.textContent = g.objetivos;
+      directorGrupoEl.textContent = g.director;
+
+      // Docentes
+      listaDocentesEl.innerHTML = "";
+      if (g.docentes.length === 0) {
+        listaDocentesEl.innerHTML = `<li class="list-group-item">No hay docentes registrados.</li>`;
+      } else {
+        g.docentes.forEach(d => {
+          const li = document.createElement("li");
+          li.className = "list-group-item";
+          li.innerHTML = `<strong>${d.nombre}</strong><br><small class="small-muted">${d.formacion} • ${d.horario}</small>`;
+          listaDocentesEl.appendChild(li);
+        });
+      }
+
+      // Semilleros
+      semillerosArea.innerHTML = "";
+      if (Object.keys(g.semilleros).length > 0) {
+        for (const semName of Object.keys(g.semilleros)) {
+          const sem = g.semilleros[semName];
+          const semDiv = document.createElement("div");
+          semDiv.className = "mb-2";
+          semDiv.innerHTML = `
+            <div class="card p-2">
+              <div class="d-flex justify-content-between">
+                <div><strong>Semillero: ${semName}</strong><div class="small-muted">Estudiantes: ${sem.estudiantes.length} • Actividades: ${sem.actividades.length}</div></div>
+                <div class="small-muted"> </div>
+              </div>
+              <div class="mt-2">
+                <p class="small-muted mb-1"><strong>Estudiantes:</strong></p>
+                <ul class="list-group list-group-flush mb-2" id="estLista-${escapeId(semName)}"></ul>
+                <p class="small-muted mb-1"><strong>Actividades:</strong></p>
+                <ul class="list-group list-group-flush" id="actLista-${escapeId(semName)}"></ul>
+              </div>
+            </div>
+          `;
+          semillerosArea.appendChild(semDiv);
+
+          const estLista = document.getElementById(`estLista-${escapeId(semName)}`);
+          const actLista = document.getElementById(`actLista-${escapeId(semName)}`);
+
+          if (sem.estudiantes.length === 0) {
+            estLista.innerHTML = `<li class="list-group-item">—</li>`;
+          } else {
+            sem.estudiantes.forEach(st => {
+              const li = document.createElement("li");
+              li.className = "list-group-item";
+              li.textContent = `${st.nombre} ( ${st.codigo} ) — ${st.carrera}`;
+              estLista.appendChild(li);
+            });
+          }
+
+          if (sem.actividades.length === 0) {
+            actLista.innerHTML = `<li class="list-group-item">—</li>`;
+          } else {
+            sem.actividades.forEach(ac => {
+              const li = document.createElement("li");
+              li.className = "list-group-item";
+              li.innerHTML = `<strong>${ac.titulo}</strong> — ${ac.tipo} — ${ac.fecha} ${ac.hora} <br><small class="small-muted">${ac.resumen}</small>`;
+              actLista.appendChild(li);
+            });
+          }
+        }
+      } else {
+        semillerosArea.innerHTML = `<small>Este grupo no tiene semilleros registrados en el prototipo.</small>`;
+      }
+
+      // Actividades globales
+      listaActividadesEl.innerHTML = "";
+      if (g.actividades.length === 0) {
+        listaActividadesEl.innerHTML = `<li class="list-group-item">No hay actividades registradas.</li>`;
+      } else {
+        g.actividades.forEach(a => {
+          const li = document.createElement("li");
+          li.className = "list-group-item";
+          li.innerHTML = `<strong>${a.titulo}</strong> — ${a.tipo} — ${a.fecha} ${a.hora} <br><small class="small-muted">Límite: ${a.limite} — ${a.resumen}</small>`;
+          listaActividadesEl.appendChild(li);
+        });
+      }
+
+      // actualizar badge con cantidad de actividades
+      badgeActividades.textContent = `Actividades: ${g.actividades.length}`;
+    }
+
+    /* ------------------ GET: carga de directores (JSONPlaceholder) ------------------ */
+    btnCargar.addEventListener("click", async () => {
+      btnCargar.disabled = true;
+      btnCargar.innerHTML = `<i class="bi bi-cloud-download me-2"></i>Cargando...`;
+
+      try {
+        const res = await fetch("https://jsonplaceholder.typicode.com/users");
+        if (!res.ok) throw new Error("Error al obtener datos (GET)");
+        const usuarios = await res.json();
+
+        if (usuarios.length >= 2) {
+          grupos["COMBA I+D"].director = usuarios[0].name + " (correo: " + usuarios[0].email + ")";
+          grupos["GIEIAM"].director = usuarios[1].name + " (correo: " + usuarios[1].email + ")";
+        } else {
+          grupos["COMBA I+D"].director = "Director no disponible";
+          grupos["GIEIAM"].director = "Director no disponible";
+        }
+
+        renderGroupsList();
+        showGroupDetails("COMBA I+D");
+        showToast("Grupos cargados correctamente.", "success");
+      } catch (err) {
+        console.error(err);
+        alert("No se pudieron cargar los grupos. Revisa la consola.");
+      } finally {
+        btnCargar.disabled = false;
+        btnCargar.innerHTML = `<i class="bi bi-cloud-download me-2"></i>Cargar Grupos`;
+      }
+    });
+
+    /* ------------------ POST: Registrar Docente ------------------ */
+    formDocente.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const nombre = document.getElementById("docenteNombre").value.trim();
+      const formacion = document.getElementById("docenteFormacion").value.trim();
+      const horario = document.getElementById("docenteHorario").value.trim();
+      const grupo = document.getElementById("docenteGrupo").value;
+
+      if (!nombre || !formacion || !horario || !grupo) {
+        alert("Por favor diligencia todos los campos del formulario de docente.");
+        return;
+      }
+      const docenteObj = { nombre, formacion, horario, grupo };
+
+      try {
+        const res = await fetch("https://jsonplaceholder.typicode.com/posts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(docenteObj)
+        });
+        if (!res.ok) throw new Error("Error en POST docente");
+        const respuesta = await res.json();
+        console.log("Respuesta POST docente:", respuesta);
+
+        // Actualizamos UI localmente (conservando estructura previa)
+        grupos[grupo].docentes.push(docenteObj);
+        if (grupoSeleccionado === grupo) showGroupDetails(grupo);
+
+        // Notificación visual (toast)
+        showToast(`Docente registrado. ID simulado: ${respuesta.id}`, "success");
+        formDocente.reset();
+      } catch (err) {
+        console.error(err);
+        alert("No se pudo registrar el docente. Revisa la consola.");
+      }
+    });
+
+    /* ------------------ POST: Vincular Estudiante ------------------ */
+    formEstudiante.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const nombre = document.getElementById("estudianteNombre").value.trim();
+      const codigo = document.getElementById("estudianteCodigo").value.trim();
+      const carrera = document.getElementById("estudianteCarrera").value.trim();
+      const semVal = document.getElementById("estudianteSemillero").value;
+
+      if (!nombre || !codigo || !carrera || !semVal) {
+        alert("Por favor diligencia todos los campos del formulario de estudiante.");
+        return;
+      }
+      const parts = semVal.split("|");
+      const grupo = parts[0];
+      const semillero = parts[1];
+
+      if (!grupos[grupo] || !grupos[grupo].semilleros[semillero]) {
+        alert("Semillero o grupo inválido.");
+        return;
+      }
+
+      const estudianteObj = { nombre, codigo, carrera, semillero };
+
+      try {
+        const res = await fetch("https://jsonplaceholder.typicode.com/posts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(estudianteObj)
+        });
+        if (!res.ok) throw new Error("Error en POST estudiante");
+        const respuesta = await res.json();
+        console.log("Respuesta POST estudiante:", respuesta);
+
+        grupos[grupo].semilleros[semillero].estudiantes.push(estudianteObj);
+        if (grupoSeleccionado === grupo) showGroupDetails(grupo);
+
+        showToast(`Estudiante vinculado al ${semillero} (ID: ${respuesta.id})`, "info");
+        formEstudiante.reset();
+      } catch (err) {
+        console.error(err);
+        alert("No se pudo vincular el estudiante. Revisa la consola.");
+      }
+    });
+
+    /* ------------------ POST: Agregar Actividad ------------------ */
+    formActividad.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const titulo = document.getElementById("actividadTitulo").value.trim();
+      const tipo = document.getElementById("actividadTipo").value;
+      const fecha = document.getElementById("actividadFecha").value;
+      const hora = document.getElementById("actividadHora").value;
+      const limite = document.getElementById("actividadLimite").value;
+      const resumen = document.getElementById("actividadResumen").value.trim();
+      const semVal = document.getElementById("actividadSemillero").value;
+
+      if (!titulo || !tipo || !fecha || !hora || !limite || !resumen || !semVal) {
+        alert("Por favor diligencia todos los campos del formulario de actividad.");
+        return;
+      }
+      const parts = semVal.split("|");
+      const grupo = parts[0];
+      const semillero = parts[1];
+
+      if (!grupos[grupo] || !grupos[grupo].semilleros[semillero]) {
+        alert("Semillero o grupo inválido.");
+        return;
+      }
+
+      const actividadObj = { titulo, tipo, fecha, hora, limite, resumen, semillero };
+
+      try {
+        const res = await fetch("https://jsonplaceholder.typicode.com/posts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(actividadObj)
+        });
+        if (!res.ok) throw new Error("Error en POST actividad");
+        const respuesta = await res.json();
+        console.log("Respuesta POST actividad:", respuesta);
+
+        grupos[grupo].semilleros[semillero].actividades.push(actividadObj);
+        grupos[grupo].actividades.push(actividadObj);
+        if (grupoSeleccionado === grupo) showGroupDetails(grupo);
+
+        showToast(`Actividad agregada al ${semillero} (ID: ${respuesta.id})`, "success");
+        formActividad.reset();
+      } catch (err) {
+        console.error(err);
+        alert("No se pudo agregar la actividad. Revisa la consola.");
+      }
+    });
+
+    // inicializamos la UI
+    renderGroupsList();
+  </script>
+</body>
+</html>
